@@ -1,0 +1,993 @@
+?<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Soul Code Quest &middot; Train Your Thinking Partner</title>
+<script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("scoutTheme")
+      || new URLSearchParams(window.location.search).get("clawpilotTheme");
+    const saved = (() => { try { return localStorage.getItem("soulcode.theme"); } catch (e) { return null; } })();
+    const theme = param || saved ||
+      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+<style>
+  :root {
+    color-scheme: light;
+    --cp-bg: #f7f4ef; --cp-bg-elevated: #fcfbf8; --cp-surface: #ffffff; --cp-surface-soft: #f5f5f5;
+    --cp-border: #dedede; --cp-border-strong: #919191; --cp-text: #242424; --cp-text-muted: #5c5c5c; --cp-text-soft: #6f6f6f;
+    --cp-accent: #b11f4b; --cp-accent-hover: #9a1a41; --cp-accent-soft: rgba(177, 31, 75, 0.08); --cp-accent-fg: #ffffff;
+    --cp-success: #16a34a; --cp-danger: #dc2626; --cp-warning: #f59e0b; --cp-link: #0078d4;
+    --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12); --cp-overlay: rgba(255, 255, 255, 0.8);
+    --cp-panel: rgba(255, 255, 255, 0.86); --cp-panel-strong: rgba(255, 255, 255, 0.96);
+    --cp-sheen: rgba(255, 255, 255, 0.55); --cp-highlight: rgba(177, 31, 75, 0.12);
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --cp-bg: #3d3b3a; --cp-bg-elevated: #343231; --cp-surface: #292929; --cp-surface-soft: #2e2e2e;
+    --cp-border: #474747; --cp-border-strong: #5f5f5f; --cp-text: #dedede; --cp-text-muted: #919191; --cp-text-soft: #b0b0b0;
+    --cp-accent: #fd8ea1; --cp-accent-hover: #fb7b91; --cp-accent-soft: rgba(253, 142, 161, 0.14); --cp-accent-fg: #1a1a1a;
+    --cp-success: #4ade80; --cp-danger: #f87171; --cp-warning: #fbbf24; --cp-link: #4da6ff;
+    --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32); --cp-overlay: rgba(41, 41, 41, 0.88);
+    --cp-panel: rgba(41, 41, 41, 0.72); --cp-panel-strong: rgba(41, 41, 41, 0.96);
+    --cp-sheen: rgba(255, 255, 255, 0.04); --cp-highlight: rgba(253, 142, 161, 0.12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--cp-bg); color: var(--cp-text);
+    font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.55; -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: Consolas, "Courier New", Courier, monospace; }
+
+  /* Header */
+  header.app { position: sticky; top: 0; z-index: 30; background: var(--cp-surface); border-bottom: 1px solid var(--cp-border); }
+  .header-inner { max-width: 1180px; margin: 0 auto; padding: 10px 22px; display: flex; align-items: center; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 9px; flex: none; display: grid; place-items: center; font-size: 18px; font-weight: 700; color: var(--cp-accent-fg); background: var(--cp-accent); box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14); }
+  .brand-text { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+  .brand-title { font-weight: 700; font-size: 15px; letter-spacing: .2px; }
+  .brand-sub { font-size: 11.5px; color: var(--cp-text-muted); letter-spacing: .3px; text-transform: uppercase; }
+  .header-spacer { flex: 1; }
+
+  /* Agent meter in header */
+  .agent-meter { display: flex; align-items: center; gap: 12px; }
+  .agent-avatar { font-size: 24px; line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,.15)); transition: transform .3s; }
+  .agent-avatar.bump { transform: scale(1.35); }
+  .agent-info { display: flex; flex-direction: column; gap: 3px; min-width: 150px; }
+  .agent-top { display: flex; justify-content: space-between; font-size: 11px; color: var(--cp-text-muted); }
+  .agent-top b { color: var(--cp-accent); }
+  .xp-track { width: 170px; height: 8px; border-radius: 99px; overflow: hidden; background: var(--cp-surface-soft); border: 1px solid var(--cp-border); }
+  .xp-fill { height: 100%; width: 0%; background: var(--cp-accent); transition: width .4s ease; }
+  .streak { font-size: 12px; font-weight: 700; color: var(--cp-warning); white-space: nowrap; }
+  .icon-btn { appearance: none; border: 1px solid var(--cp-border); background: var(--cp-surface); color: var(--cp-text); border-radius: 9px; width: 38px; height: 34px; cursor: pointer; font-size: 16px; display: grid; place-items: center; transition: background .15s, border-color .15s; }
+  .icon-btn:hover { background: var(--cp-surface-soft); border-color: var(--cp-border-strong); }
+  .theme-sel { border: 1px solid var(--cp-border); background: var(--cp-surface); color: var(--cp-text); border-radius: 9px; height: 34px; padding: 0 8px; font-size: 12.5px; font-family: inherit; cursor: pointer; max-width: 160px; }
+  .theme-sel:hover { border-color: var(--cp-border-strong); }
+  #scanlines { position: fixed; inset: 0; pointer-events: none; z-index: 55; display: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px); mix-blend-mode: multiply; }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 22px 90px; }
+  .layout { display: grid; grid-template-columns: 256px 1fr; gap: 26px; align-items: start; }
+  @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } .rail { position: static !important; } .agent-info { min-width: 110px; } .xp-track { width: 110px; } }
+
+  /* Rail */
+  .rail { position: sticky; top: 80px; background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 16px; padding: 14px; box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14); }
+  .rail h3 { margin: 4px 6px 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--cp-text-soft); }
+  .rail-item { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; border: none; background: transparent; cursor: pointer; padding: 9px 10px; border-radius: 10px; color: var(--cp-text); font-size: 13.5px; transition: background .14s; }
+  .rail-item:hover { background: var(--cp-surface-soft); }
+  .rail-item.active { background: var(--cp-accent-soft); }
+  .rail-item.active .rail-name { color: var(--cp-accent); font-weight: 650; }
+  .rail-dot { width: 24px; height: 24px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 13px; border: 1.5px solid var(--cp-border-strong); color: var(--cp-text-muted); background: var(--cp-surface); }
+  .rail-item.active .rail-dot { border-color: var(--cp-accent); color: var(--cp-accent); }
+  .rail-dot.done { background: var(--cp-accent); border-color: var(--cp-accent); color: var(--cp-accent-fg); }
+  .rail-name { flex: 1; min-width: 0; }
+  .rail-count { font-size: 11px; color: var(--cp-text-soft); }
+  .rail-sep { height: 1px; background: var(--cp-border); margin: 10px 4px; }
+  .rail-finish { color: var(--cp-accent); font-weight: 650; }
+  .rail-badges { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 6px 2px; }
+  .rail-badge { font-size: 16px; filter: grayscale(1) opacity(.35); transition: filter .3s; }
+  .rail-badge.earned { filter: none; }
+
+  /* Panel */
+  .panel { background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 16px; padding: 26px 30px; box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14); }
+  .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--cp-accent); font-weight: 650; }
+  .panel h1 { margin: 6px 0 4px; font-size: 27px; line-height: 1.2; }
+  .panel h2 { margin: 0 0 4px; font-size: 23px; line-height: 1.2; }
+  .lede { color: var(--cp-text-muted); font-size: 15px; margin: 0 0 4px; }
+  .section-icon { font-size: 30px; line-height: 1; }
+  .section-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 6px; }
+  .group-head { margin: 22px 0 2px; font-size: 12.5px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--cp-text-soft); display: flex; align-items: center; gap: 10px; }
+  .group-head::after { content: ""; flex: 1; height: 1px; background: var(--cp-border); }
+
+  /* Quest card */
+  .card { margin-top: 16px; border: 1px solid var(--cp-border); border-radius: 14px; background: var(--cp-bg-elevated); padding: 16px 18px; transition: border-color .2s; }
+  .card.answered { border-color: var(--cp-success); }
+  .card-top { display: flex; gap: 10px; align-items: flex-start; }
+  .q-num { flex: none; font-size: 11px; font-weight: 700; color: var(--cp-accent); background: var(--cp-accent-soft); border-radius: 6px; padding: 3px 8px; min-width: 28px; text-align: center; }
+  .q-main { flex: 1; min-width: 0; }
+  .q-label { font-weight: 600; font-size: 15.5px; }
+  .q-hint { color: var(--cp-text-soft); font-size: 12.5px; margin-top: 3px; font-style: italic; }
+  .tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; border-radius: 99px; padding: 3px 9px; white-space: nowrap; }
+  .tag.signal { background: var(--cp-accent-soft); color: var(--cp-accent); }
+  .tag.reflect { background: rgba(245,158,11,.14); color: var(--cp-warning); }
+  .tag.done { background: rgba(22,163,74,.14); color: var(--cp-success); }
+
+  .suggest { margin-top: 12px; border-left: 3px solid var(--cp-accent); background: var(--cp-surface); border-radius: 0 10px 10px 0; padding: 11px 14px; font-size: 13.5px; }
+  .suggest .stitle { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--cp-text-soft); margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+  .suggest.reflect { border-left-color: var(--cp-warning); }
+  .suggest .stext { color: var(--cp-text); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+  .chip { cursor: pointer; border: 1px dashed var(--cp-border-strong); background: var(--cp-surface); color: var(--cp-text-muted); border-radius: 99px; padding: 5px 12px; font-size: 12.5px; transition: all .14s; }
+  .chip:hover { border-style: solid; border-color: var(--cp-accent); color: var(--cp-accent); background: var(--cp-accent-soft); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .mini { appearance: none; cursor: pointer; border-radius: 9px; font-size: 12.5px; font-weight: 600; padding: 7px 13px; border: 1px solid var(--cp-border); background: var(--cp-surface); color: var(--cp-text); transition: all .14s; display: inline-flex; align-items: center; gap: 6px; }
+  .mini:hover { border-color: var(--cp-border-strong); background: var(--cp-surface-soft); }
+  .mini.accept { border-color: var(--cp-accent); color: var(--cp-accent); }
+  .mini.accept:hover { background: var(--cp-accent); color: var(--cp-accent-fg); }
+  .mini.ai { margin-left: auto; color: var(--cp-link); border-color: var(--cp-border); }
+
+  textarea { width: 100%; margin-top: 11px; resize: vertical; min-height: 84px; background: var(--cp-surface); color: var(--cp-text); border: 1px solid var(--cp-border); border-radius: 10px; padding: 11px 13px; font-family: inherit; font-size: 14.5px; line-height: 1.5; transition: border-color .15s, box-shadow .15s; }
+  textarea:focus { outline: none; border-color: var(--cp-accent); box-shadow: 0 0 0 3px var(--cp-accent-soft); }
+
+  .nav-row { margin-top: 26px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .btn { appearance: none; cursor: pointer; border-radius: 10px; font-size: 14.5px; font-weight: 600; padding: 11px 20px; border: 1px solid var(--cp-border); background: var(--cp-surface); color: var(--cp-text); transition: background .15s, border-color .15s, transform .05s; display: inline-flex; align-items: center; gap: 8px; }
+  .btn:hover { background: var(--cp-surface-soft); border-color: var(--cp-border-strong); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--cp-accent); border-color: var(--cp-accent); color: var(--cp-accent-fg); }
+  .btn.primary:hover { background: var(--cp-accent-hover); border-color: var(--cp-accent-hover); }
+  .btn.ghost { background: transparent; }
+  .btn.lg { padding: 14px 26px; font-size: 15.5px; }
+  .progress-label { font-size: 12px; color: var(--cp-text-muted); white-space: nowrap; }
+
+  /* Welcome */
+  .hero { text-align: center; padding: 14px 6px 4px; }
+  .hero .badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 99px; background: var(--cp-accent-soft); color: var(--cp-accent); font-weight: 650; font-size: 12.5px; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 16px; }
+  .hero h1 { font-size: 34px; margin: 0 0 8px; letter-spacing: -.3px; }
+  .hero .sub { font-size: 17px; color: var(--cp-text-muted); max-width: 660px; margin: 0 auto 8px; }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 28px 0; }
+  @media (max-width: 760px) { .feature-grid { grid-template-columns: 1fr; } .hero h1 { font-size: 27px; } }
+  .feature { background: var(--cp-bg-elevated); border: 1px solid var(--cp-border); border-radius: 14px; padding: 18px; text-align: left; }
+  .feature .fi { font-size: 22px; }
+  .feature h4 { margin: 8px 0 5px; font-size: 15px; }
+  .feature p { margin: 0; font-size: 13px; color: var(--cp-text-muted); }
+  .name-field { max-width: 380px; margin: 8px auto 24px; text-align: left; }
+  .name-field label { font-size: 13px; color: var(--cp-text-muted); font-weight: 600; }
+  .name-field input { width: 100%; margin-top: 6px; background: var(--cp-bg-elevated); color: var(--cp-text); border: 1px solid var(--cp-border); border-radius: 10px; padding: 11px 13px; font-family: inherit; font-size: 14.5px; }
+  .name-field input:focus { outline: none; border-color: var(--cp-accent); box-shadow: 0 0 0 3px var(--cp-accent-soft); }
+
+  /* Review */
+  .stat-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 18px 0 6px; }
+  .stat { flex: 1; min-width: 120px; background: var(--cp-bg-elevated); border: 1px solid var(--cp-border); border-radius: 12px; padding: 14px 16px; }
+  .stat .num { font-size: 24px; font-weight: 700; color: var(--cp-accent); }
+  .stat .lbl { font-size: 12px; color: var(--cp-text-muted); text-transform: uppercase; letter-spacing: .4px; }
+  .tabs { display: flex; gap: 8px; margin: 22px 0 0; border-bottom: 1px solid var(--cp-border); }
+  .tab { appearance: none; border: none; background: transparent; cursor: pointer; padding: 11px 4px; margin-right: 14px; font-size: 14px; font-weight: 600; color: var(--cp-text-muted); border-bottom: 2.5px solid transparent; }
+  .tab.active { color: var(--cp-accent); border-bottom-color: var(--cp-accent); }
+  .output { margin-top: 16px; background: var(--cp-bg-elevated); border: 1px solid var(--cp-border); border-radius: 12px; padding: 18px 20px; max-height: 460px; overflow: auto; white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
+  .output.doc { white-space: normal; }
+  .output.doc h3 { color: var(--cp-accent); font-size: 13px; letter-spacing: .6px; text-transform: uppercase; margin: 20px 0 8px; border-bottom: 1px solid var(--cp-border); padding-bottom: 5px; }
+  .output.doc h3:first-child { margin-top: 0; }
+  .output.doc .gh { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--cp-text-soft); margin: 14px 0 6px; }
+  .output.doc .qa { margin: 0 0 12px; }
+  .output.doc .qa .qq { font-weight: 600; }
+  .output.doc .qa .aa { color: var(--cp-text-muted); }
+  .output.doc .qa .aa.empty { color: var(--cp-warning); font-style: italic; }
+  .callout { margin-top: 16px; background: var(--cp-accent-soft); border: 1px solid var(--cp-accent); border-radius: 12px; padding: 14px 16px; font-size: 13.5px; }
+  .callout b { color: var(--cp-accent); }
+
+  .toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); background: var(--cp-text); color: var(--cp-bg); padding: 11px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 60; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .footnote { margin-top: 26px; font-size: 12px; color: var(--cp-text-soft); text-align: center; }
+  .footnote a { color: var(--cp-link); }
+
+  /* Level-up / badge modal */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; place-items: center; z-index: 70; }
+  .modal-bg.show { display: grid; }
+  .modal { background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 18px; padding: 30px 34px; text-align: center; max-width: 380px; box-shadow: var(--cp-shadow); animation: pop .3s ease; }
+  @keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal .big { font-size: 54px; line-height: 1; }
+  .modal h3 { margin: 12px 0 4px; font-size: 21px; }
+  .modal p { color: var(--cp-text-muted); margin: 0 0 18px; font-size: 14px; }
+  .confetti { position: fixed; top: 0; left: 0; width: 12px; height: 12px; z-index: 80; pointer-events: none; border-radius: 2px; }
+
+  @media print { header.app, .rail, .nav-row, .tabs, .stat-row, .callout, .footnote, .row.actions, .modal-bg { display: none !important; } .layout { grid-template-columns: 1fr; } .output { max-height: none; overflow: visible; border: none; padding: 0; } body { background: #fff; } }
+</style>
+</head>
+<body>
+<header class="app">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-mark">✦</div>
+      <div class="brand-text">
+        <span class="brand-title">Soul Code Quest</span>
+        <span class="brand-sub">Train Your Thinking Partner</span>
+      </div>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="agent-meter" id="agentMeter" style="display:none;">
+      <span class="agent-avatar" id="agentAvatar">🥚</span>
+      <div class="agent-info">
+        <div class="agent-top"><span id="agentStage">Dormant</span><span>Lv <b id="agentLevel">1</b></span></div>
+        <div class="xp-track"><div class="xp-fill" id="xpFill"></div></div>
+        <div class="agent-top"><span id="agentReady">0% ready</span><span id="agentXp">0 XP</span></div>
+      </div>
+      <span class="streak" id="streak" style="visibility:hidden;">🔥 0</span>
+    </div>
+    <select class="theme-sel" id="themeSel" title="Theme">
+      <option value="default">🎨 Default</option>
+      <option value="terminal">🖥️ Retro Terminal</option>
+      <option value="win95">🪟 Windows 95</option>
+      <option value="hollywood">🎬 M&amp;E / Hollywood</option>
+      <option value="msblue">💙 Microsoft Blue</option>
+      <option value="prodark">🌌 Professional Dark</option>
+      <option value="tmg">🤖 TMG Neon</option>
+      <option value="hcblack">⬛ High Contrast Dark</option>
+      <option value="hcwhite">⬜ High Contrast Light</option>
+    </select>
+    <button class="icon-btn" id="themeBtn" title="Toggle light / dark">☾</button>
+  </div>
+</header>
+
+<main>
+  <!-- WELCOME -->
+  <section id="view-welcome">
+    <div class="panel">
+      <div class="hero">
+        <span class="badge">🌱 Build your thinking partner</span>
+        <h1>Stop re-explaining yourself to AI</h1>
+        <p class="sub">Spend about 15 minutes once, and any AI thinking partner will know who you are, how you work, what you value, and where you're headed. The payoff: every future task gets faster, sounds like you, and respects your boundaries. Most of the answers are already hiding in your work, so I do the digging and hand you drafts. You just react: <b>keep it</b>, <b>tweak it</b>, or <b>make it yours</b>.</p>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature"><div class="fi">⚡</div><h4>No blank page</h4><p>I pull from your real work (your accounts, your v-team, where your time goes) and pre-draft your answers. You just keep, tweak, or replace.</p></div>
+        <div class="feature"><div class="fi">🎮</div><h4>Fast, and kind of fun</h4><p>It's a quick quest, not a form. Level up your partner, earn badges, and watch it grow from 🥚 to ⭐ as you go.</p></div>
+        <div class="feature"><div class="fi">🧠</div><h4>Pays you back daily</h4><p>Finish once and your assistant knows your style, goals, and boundaries, so every future task is faster and you repeat yourself less.</p></div>
+      </div>
+
+      <div class="name-field">
+        <label for="userName">Your name <span style="font-weight:400;color:var(--cp-text-soft)">(optional)</span></label>
+        <input id="userName" type="text" placeholder="e.g. Caryn Allen" autocomplete="name" />
+      </div>
+
+      <div style="text-align:center;">
+        <button class="btn primary lg" id="startBtn">Start the quest &rarr;</button>
+        <button class="btn ghost lg" id="resumeBtn" style="display:none;">Resume</button>
+      </div>
+    </div>
+    <p class="footnote">Based on the Microsoft <em>Soul Code 3.0</em> onboarding questionnaire &middot; Strategic Partner Training System. 36 questions &middot; 6 sections.</p>
+  </section>
+
+  <!-- BUILDER -->
+  <section id="view-builder" style="display:none;">
+    <div class="layout">
+      <aside class="rail" id="rail">
+        <h3>Quest map</h3>
+        <div id="railItems"></div>
+        <div class="rail-sep"></div>
+        <button class="rail-item" id="railFinish"><span class="rail-dot">★</span><span class="rail-name rail-finish">Review &amp; finish</span></button>
+        <div class="rail-sep"></div>
+        <h3 style="margin-bottom:2px;">Badges</h3>
+        <div class="rail-badges" id="railBadges"></div>
+      </aside>
+      <div>
+        <div class="panel" id="sectionPanel"></div>
+        <div class="nav-row">
+          <button class="btn ghost" id="backBtn">&larr; Back</button>
+          <span class="progress-label" id="sectionPos"></span>
+          <button class="btn primary" id="nextBtn">Next &rarr;</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REVIEW -->
+  <section id="view-review" style="display:none;">
+    <div class="layout">
+      <aside class="rail" id="rail2">
+        <h3>Quest map</h3>
+        <div id="railItems2"></div>
+        <div class="rail-sep"></div>
+        <button class="rail-item active"><span class="rail-dot done">★</span><span class="rail-name rail-finish">Review &amp; finish</span></button>
+        <div class="rail-sep"></div>
+        <h3 style="margin-bottom:2px;">Badges</h3>
+        <div class="rail-badges" id="railBadges2"></div>
+      </aside>
+      <div>
+        <div class="panel">
+          <div class="eyebrow">Final step</div>
+          <h1>Your Soul Code</h1>
+          <p class="lede">Three things you can do with your answers: <b>keep</b> your Soul Code, have <b>Copilot polish</b> it, or <b>load it into Scout</b> so it sticks. Pick a tab.</p>
+          <div class="stat-row">
+            <div class="stat"><div class="num" id="statAnswered">0</div><div class="lbl">Answered</div></div>
+            <div class="stat"><div class="num" id="statTotal">36</div><div class="lbl">Questions</div></div>
+            <div class="stat"><div class="num" id="statPct">0%</div><div class="lbl">Partner ready</div></div>
+            <div class="stat"><div class="num" id="statWords">0</div><div class="lbl">Words</div></div>
+          </div>
+          <div class="tabs">
+            <button class="tab active" data-tab="doc">📄 Keep it</button>
+            <button class="tab" data-tab="prompt">🤖 Polish it</button>
+            <button class="tab" data-tab="mem">🧠 Make it stick</button>
+          </div>
+          <div id="tab-doc">
+            <div class="callout"><b>📄 Keep it.</b> This is your finished Soul Code: every answer in one place. It's <i>yours</i> to keep. Save, print, or download it so you always have your own record, and reuse it with any AI assistant. What's in it for you: a clear picture of who you are that you never have to rebuild from scratch.</div>
+            <div class="row actions" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
+              <button class="btn primary" id="copyDocBtn">Copy Soul Code</button>
+              <button class="btn" id="downloadBtn">Download .md</button>
+              <button class="btn" id="printBtn">Print / Save PDF</button>
+            </div>
+            <div class="output doc" id="docOut"></div>
+          </div>
+          <div id="tab-prompt" style="display:none;">
+            <div class="callout"><b>🤖 Polish it.</b> Don't love your wording, or left some blanks? Open Microsoft 365 Copilot (Business Chat), start a New Chat, and paste the prompt below. Copilot refines your answers and drafts any gaps in your voice, then hands you a finished Soul Code. What's in it for you: a polished result without staring at a blank page.</div>
+            <div class="row actions" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;"><button class="btn primary" id="copyPromptBtn">Copy Copilot prompt</button></div>
+            <div class="output" id="promptOut"></div>
+          </div>
+          <div id="tab-mem" style="display:none;">
+            <div class="callout"><b>🧠 Make it stick.</b> A document gets filed and forgotten. Copy the pack below, paste it into a Scout chat, and say <i>&ldquo;remember these about me.&rdquo;</i> Scout saves each as a durable memory, so it knows you in every future session, not just today. What's in it for you: an assistant that stops asking the same questions and starts sounding like you. <span id="memNote" style="display:block;margin-top:6px;color:var(--cp-text-muted);"></span></div>
+            <div class="row actions" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;"><button class="btn primary" id="copyMemBtn">Copy memory pack</button></div>
+            <div class="output" id="memOut"></div>
+          </div>
+          <div class="nav-row">
+            <button class="btn ghost" id="reviewBackBtn">&larr; Back to questions</button>
+            <button class="btn ghost" id="resetBtn" style="color:var(--cp-danger);">Reset everything</button>
+          </div>
+        </div>
+        <p class="footnote">Your Soul Code lives only on this device until you export it. &middot; Soul Code Quest</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="scanlines"></div>
+<div class="toast" id="toast"></div>
+<div class="modal-bg" id="modalBg"><div class="modal"><div class="big" id="modalBig">🏅</div><h3 id="modalTitle">Section complete!</h3><p id="modalText"></p><button class="btn primary" id="modalBtn">Keep going &rarr;</button></div></div>
+
+<script>
+(() => {
+  "use strict";
+
+  // kind: "signal" = grounded in the user's real work (editable drafts). "reflect" = personal; we only scaffold + quick-picks, never fabricate.
+  const SECTIONS = [
+    { id: 0, icon: "🎯", title: "Your Microsoft Role", subtitle: "Role, context, challenges, and goals.", badge: "🎯",
+      groups: [
+        { heading: "Your Role & Responsibilities", questions: [
+          { q: "What are your primary responsibilities?", kind: "signal", drafts: [
+            "As a Senior CSAM, I orchestrate customer success across five complex media & entertainment accounts, AMC, Lionsgate, STARZ, Getty Images, and National CineMedia. I run the motion end to end: leading customer syncs and unified support cadences, driving Azure consumption and portfolio health (ACR tracking, anomaly review), managing renewals and contract hygiene, and orchestrating escalations and RCAs across support, CSA, and engineering so my customers stay unblocked and realize value.",
+            "I own the customer success relationship for five M&E accounts (AMC, Lionsgate, STARZ, Getty, NCM): driving consumption and account health, leading support and renewal cadences, and coordinating cross-team escalations so customers get value and stay unblocked." ] },
+          { q: "What does a successful quarter look like in your role?", kind: "signal", drafts: [
+            "Renewals land cleanly with contract hygiene buttoned up (LGE/STARZ/Getty), consumption and ACR are healthy and trending up across the portfolio, high-severity escalations resolve with clear RCAs and no lingering ownership gaps, and at least one strategic motion moves forward, like AMC's Azure DevOps/GitHub workstream or a Copilot/AI scoping win. Customers feel supported and I'm ahead of risks, not reacting to them." ] },
+          { q: "Who do you work with most closely?", kind: "signal", drafts: [
+            "Internally: Sean High (AE) on renewals and strategy, Brandon Mellergaard (CSA) on AMC's Azure DevOps/GitHub and technical workstreams, my manager Jason Morales on account direction, Holly Todd (CSAM peer), and account-team partners Ryan Tannenbaum and Jackson Crockarell, plus a steady set of Support Engineers and Escalation Managers. Customer-side: AMC (Steven Strickland, Abdul Rahman and team), Lionsgate (Eddie Soto, Edward Conde, Max Uzzan), Getty (Paul Blalock), and NCM (Beth Culpepper)." ] },
+          { q: "What tools, systems, or platforms do you use most?", kind: "signal", drafts: [
+            "MSX / Dynamics 365 for account and opportunity management; Microsoft 365 (Outlook, Teams, Loop) for collaboration and customer cadences; the Azure portal and consumption/ACR dashboards for portfolio health; Power BI for reporting; and the support/escalation tooling for case orchestration and RCAs. Increasingly Copilot and Scout to cut the admin weight." ] },
+        ]},
+        { heading: "Your Microsoft Context", questions: [
+          { q: "What solution areas or products do you focus on?", kind: "signal", drafts: [
+            "Azure (consumption, infrastructure reliability / Azure Local, and ALM with Azure DevOps + GitHub), Unified Support, and increasingly Microsoft 365 Copilot / AI, Copilot Champs, demos, and AI innovation scoping. Some Entra and D365 surface through escalations." ] },
+          { q: "What industries or customer segments do you serve?", kind: "signal", drafts: [
+            "Media & Entertainment, a portfolio of major M&E names: AMC Theatres, Lionsgate, STARZ, Getty Images, and National CineMedia. Enterprise accounts with complex, multi-team technical and contractual footprints." ] },
+          { q: "How do you think about Microsoft's mission in YOUR work?", kind: "reflect", scaffold:
+            "\u2018Empower every person and organization to achieve more\u2019 shows up for me as making sure my M&E customers actually realize value from what they\u2019ve bought, not just sold to, but supported, unblocked, and set up to do more with Azure and AI. [Add what the mission means in your own words.]" },
+          { q: "What aspects of Microsoft culture resonate most with you?", kind: "reflect", scaffold:
+            "What resonates most: [pick a couple below and add why, e.g. learning through tough escalations, partnering across the v-team].", chips: ["Growth mindset","Customer obsession","One Microsoft / collaboration","Diversity & inclusion","Making a difference"] },
+        ]},
+        { heading: "Your Challenges & Growth", questions: [
+          { q: "What's the hardest part of your job right now?", kind: "signal", drafts: [
+            "Orchestration friction. Holding five complex accounts together when cross-team dependencies (support, CSA, engineering) have unclear ownership, high-sev escalations need RCAs and alignment across multiple teams, and renewals create back-and-forth on POs, billing, and \u2018are we done?\u2019 confirmations. Technical ambiguity, like Azure DevOps\u2194GitHub feasibility or CSA resourcing timing, slows things down too." ],
+            chips: ["Quota pressure","Complex deals","Matrixed resources","Customer objections","Internal systems","Market dynamics","Scheduling collisions"] },
+          { q: "What takes up too much of your time that AI could help with?", kind: "signal", drafts: [
+            "Meeting prep and follow-ups across five accounts, chasing renewal/PO/billing status, stitching together support-case and escalation updates from multiple teams, and portfolio-health busywork like ACR anomaly review and report assembly. So much of it is finding and summarizing signal that already exists, exactly the weight AI should carry." ],
+            chips: ["Meeting prep","Account research","Email follow-ups","CRM updates","Proposal drafts","Competitive intel","Data entry","Status chasing"] },
+        ]},
+        { heading: "Your FY26 Goals & Development", questions: [
+          { q: "What are your TOP 3 professional goals for this fiscal year?", kind: "reflect", scaffold:
+            "1) Land renewals cleanly with healthy consumption growth across the portfolio (esp. LGE/STARZ/Getty). 2) Move a strategic technical motion forward, e.g. AMC's Azure DevOps/GitHub/ALM, from POC to adoption. 3) Grow my AI fluency and bring Copilot value to my customers (and reclaim my own time). [Make these your real targets.]",
+            chips: ["Revenue targets","Skill development","Career advancement","Customer wins","Certifications","Leadership growth"] },
+          { q: "What skill would make the biggest difference in your performance?", kind: "reflect", scaffold:
+            "[Pick what's true for you and say why.] e.g. AI fluency, using Copilot/Scout to carry the admin and orchestration weight so I can spend more time on strategy and relationships.",
+            chips: ["Technical depth","Storytelling","Executive presence","AI fluency","Industry expertise","Deal negotiation"] },
+          { q: "Where do you want to be in your career 2-3 years from now?", kind: "reflect", scaffold:
+            "[Describe the next chapter in your words.]", chips: ["Next role up","Leadership","Different solution area","Partner / field","HQ","People management","Deeper technical"] },
+          { q: "If you could wave a magic wand and fix ONE thing about your workday, what would it be?", kind: "signal", drafts: [
+            "Kill the scheduling collisions and the cross-team ownership ambiguity. If customer sessions stopped stacking and every escalation had one clear owner with status I didn't have to chase, my days would get dramatically lighter." ] },
+        ]},
+      ] },
+
+    { id: 1, icon: "🔥", title: "What Drives You", subtitle: "Purpose, values, and trade-offs.", badge: "🔥", questions: [
+      { q: "What gets you out of bed in the morning?", kind: "reflect", scaffold: "Start where the work feels worth it, e.g. \u2018seeing a customer finally unblocked after a hard escalation,\u2019 or \u2018clearing the path so the teams behind the screens can do more.\u2019 Make it yours." },
+      { q: "What are your top 3 non-negotiables in life or work?", kind: "reflect", scaffold: "Pick your three and name them plainly.", chips: ["Family time","Integrity","Excellence","Health","Creativity","Impact","Honesty","Faith"] },
+      { q: "Who are you building for?", kind: "reflect", scaffold: "Name the people your work ultimately serves.", chips: ["My family","My team","My customers","My community","My future self"] },
+      { q: "When things get messy or rushed, what should win?", kind: "reflect", scaffold: "Pick the one that should win when there's no time to weigh it all.", chips: ["Excellence","Speed","Reputation","Family","Health","Future Vision"] },
+      { q: "What trade-offs are you willing, or not willing, to make?", kind: "reflect", scaffold: "Name a line you'll cross under pressure, and one you won't. This helps your agent protect your values when decisions conflict." },
+    ]},
+
+    { id: 2, icon: "🤝", title: "How You Like to Work Together", subtitle: "Communication and feedback style.", badge: "🤝", questions: [
+      { q: "How do you want your agent to speak to you?", kind: "reflect", scaffold: "Direct, concise, and warm, skip the preamble, lead with the answer, and tell me the truth even when it's inconvenient. Coach me, don't flatter me. [Adjust to your taste.]", chips: ["Direct & concise","Warm but honest","Coach, not cheerleader","Skip the fluff","Celebrate wins with me"] },
+      { q: "When you're overwhelmed, how should your agent respond?", kind: "reflect", scaffold: "Slow me down and give me one clear next step. Don't pile on options, help me triage to the single most important thing.", chips: ["Slow me down","Give me one next step","Be gentle","Be firm","Help me triage"] },
+      { q: "How should your agent challenge you if something feels off?", kind: "reflect", scaffold: "Use a short signal phrase so I notice without feeling judged.", chips: ["\u201CPause, I see a conflict\u201D","\u201CThis may drain you\u201D","\u201CRed flag\u201D","\u201CIs this the best use of your time?\u201D"] },
+      { q: "How do you like to receive feedback or course corrections?", kind: "reflect", scaffold: "Direct and in the moment, with the why, and ideally paired with a fix. [Make it yours.]", chips: ["Direct & immediate","Privately","With the reasoning","Paired with a fix"] },
+    ]},
+
+    { id: 3, icon: "🛡️", title: "Your Boundaries", subtitle: "What's always, never, and in the vault.", badge: "🛡️", questions: [
+      { q: "What should your agent ALWAYS ask before doing?", kind: "reflect", scaffold: "Always ask before committing me to customer meetings, messaging leadership, sharing deal or contract details externally, or making any promise on my behalf to a customer or partner.", chips: ["Committing me to meetings","Messaging leadership","Sharing deal details","External promises","Anything sent to customers"] },
+      { q: "What should your agent NEVER do, automate, or surface?", kind: "reflect", scaffold: "Never send anything to customers, partners, or leadership without my explicit yes. Never surface confidential deal numbers or contract specifics in shared/unprotected places, and steer clear of [personal topics you choose] in my work context.", chips: ["Auto-send externally","Surface confidential figures","Politics / world views","Personal/family topics","Anything in my vault"] },
+      { q: "What belongs in your \u201Cvault\u201D?", kind: "reflect", scaffold: "What should never be summarized, shared, or surfaced without your explicit yes? e.g. personal/family matters, candid views about people or deals, anything you're working through, confidential contract details." },
+    ]},
+
+    { id: 4, icon: "🌊", title: "Your Emotional Landscape", subtitle: "Stress, triggers, and what restores you.", badge: "🌊", questions: [
+      { q: "When you're stressed, what does it usually look like?", kind: "reflect", scaffold: "Name your tells so your agent can spot them early.", chips: ["Saying yes too quickly","Shutting down","Rushing","Procrastinating","Overworking","Going quiet"] },
+      { q: "What tends to trigger overwhelm for you?", kind: "reflect", scaffold: "Name the usual culprits.", chips: ["Meetings stacking up","Unclear priorities","Urgent fire drills","Quarter-end pressure","Conflict","Too many stakeholders"] },
+      { q: "What dims your spark? What voices or situations make you feel small?", kind: "reflect", scaffold: "Be honest, this helps your agent protect your energy and confidence." },
+      { q: "In those moments, what helps you reset quickly?", kind: "reflect", scaffold: "Your fastest path back to center.", chips: ["A walk","Silence","One clear next step","A 5-min breather","Talking to a colleague","A quick win"] },
+      { q: "What drains your energy fastest? What restores it fastest?", kind: "reflect", scaffold: "One drainer, one restorer, name both." },
+    ]},
+
+    { id: 5, icon: "🌱", title: "Your Season & Your Future", subtitle: "Where you are and where you're headed.", badge: "🌱", questions: [
+      { q: "What \u201Cseason of life\u201D are you in right now?", kind: "reflect", scaffold: "Pick one (or add your own) and a word on why.", chips: ["Building","Healing","Expanding","Recovering","Grieving","Surviving","Creating","Transforming"] },
+      { q: "What constraints or realities should your agent always consider?", kind: "reflect", scaffold: "The real-life context your agent should respect.", chips: ["Family structure","Travel requirements","Eastern time zone","Health","Caregiving","Finances","Personal pace"] },
+      { q: "Where are you headed? What do you want your life to look like in 3-5 years?", kind: "reflect", scaffold: "Paint the picture, work and life." },
+      { q: "Describe your \u201Cperfect work day.\u201D", kind: "reflect", scaffold: "How it starts, what it includes, how it ends." },
+      { q: "Anything else your agent should understand to support you deeply and respectfully?", kind: "reflect", scaffold: "Anything we missed, the floor is yours." },
+    ]},
+  ];
+
+  // Flatten into questions, and build navigable STEPS.
+  // Section 0's four sub-groups each become their own step so badges come quickly and screens stay short.
+  const FLAT = [];
+  const STEPS = [];
+  const GROUP_BADGE = {
+    "Your Role & Responsibilities": "📋",
+    "Your Microsoft Context": "🧭",
+    "Your Challenges & Growth": "💪",
+    "Your FY26 Goals & Development": "🏆",
+  };
+  SECTIONS.forEach((sec) => {
+    const groups = sec.groups || [{ heading: null, questions: sec.questions }];
+    let idx = 0;
+    groups.forEach((g) => {
+      const stepQs = [];
+      g.questions.forEach((qq) => {
+        qq.key = "s" + sec.id + "_q" + idx;
+        qq.sectionId = sec.id;
+        idx++;
+        FLAT.push(qq);
+        stepQs.push(qq);
+      });
+      if (sec.groups) {
+        const bd = GROUP_BADGE[g.heading] || sec.badge;
+        STEPS.push({ title: g.heading, icon: bd, badge: bd, sub: sec.title, secLabel: sec.title, questions: stepQs });
+      } else {
+        STEPS.push({ title: sec.title, icon: sec.icon, badge: sec.badge, sub: sec.subtitle, secLabel: sec.title, questions: stepQs });
+      }
+    });
+  });
+  const TOTAL = FLAT.length;
+  const XP_PER = 10;
+  const STAGES = [
+    { p: 0,  a: "🥚", n: "Dormant" }, { p: 1, a: "🐣", n: "Waking up" },
+    { p: 21, a: "🌱", n: "Learning you" }, { p: 41, a: "🌿", n: "Getting it" },
+    { p: 61, a: "🌳", n: "Strong partner" }, { p: 81, a: "🚀", n: "Nearly synced" },
+    { p: 100, a: "⭐", n: "Fully attuned" },
+  ];
+
+  const STORE = "soulcode.v2";
+  let state = { name: "", answers: {} };
+  try { const raw = localStorage.getItem(STORE); if (raw) state = Object.assign(state, JSON.parse(raw)); } catch (e) {}
+  let celebrated = {}; // section badges shown this session
+
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+  const $ = (id) => document.getElementById(id);
+  const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
+  const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const filled = (k) => (state.answers[k] || "").trim().length > 0;
+  const answered = () => FLAT.filter((f) => filled(f.key)).length;
+  const secAnswered = (id) => FLAT.filter((f) => f.sectionId === id && filled(f.key)).length;
+  const secTotal = (id) => FLAT.filter((f) => f.sectionId === id).length;
+  const stepAnswered = (i) => STEPS[i].questions.filter((q) => filled(q.key)).length;
+  const stepTotal = (i) => STEPS[i].questions.length;
+  const wordCount = () => FLAT.reduce((a, f) => { const t = (state.answers[f.key] || "").trim(); return a + (t ? t.split(/\s+/).length : 0); }, 0);
+
+  function stageFor(pct) { let s = STAGES[0]; for (const st of STAGES) if (pct >= st.p) s = st; return s; }
+
+  function updateMeter(bump) {
+    const a = answered(), pct = Math.round((a / TOTAL) * 100), xp = a * XP_PER, lvl = Math.floor(xp / 50) + 1;
+    const st = stageFor(pct);
+    $("agentAvatar").textContent = st.a;
+    $("agentStage").textContent = st.n;
+    $("agentLevel").textContent = lvl;
+    $("agentReady").textContent = pct + "% ready";
+    $("agentXp").textContent = xp + " XP";
+    $("xpFill").style.width = pct + "%";
+    if (bump) { const av = $("agentAvatar"); av.classList.add("bump"); setTimeout(() => av.classList.remove("bump"), 320); }
+  }
+
+  // Theme
+  function syncThemeIcon() { $("themeBtn").textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "☀" : "☾"; }
+  $("themeBtn").addEventListener("click", () => {
+    const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("soulcode.theme", next); } catch (e) {}
+    syncThemeIcon();
+  });
+  syncThemeIcon();
+
+  // Theme palettes (ported from the CSAM dashboard)
+  const THEMES = {
+    default:  { label: "Default", font: "", vars: {} },
+    terminal: { label: "Retro Terminal", font: 'Consolas,"Courier New",monospace', vars: {
+      "--cp-bg":"#0a0a0a","--cp-bg-elevated":"#0d0d0d","--cp-surface":"#111",
+      "--cp-surface-soft":"#0f1a0f","--cp-border":"#00aa22","--cp-border-strong":"#00dd44",
+      "--cp-text":"#00ff41","--cp-text-muted":"#00aa22","--cp-text-soft":"#00cc33",
+      "--cp-accent":"#00ff41","--cp-accent-hover":"#00cc33","--cp-accent-soft":"rgba(0,255,65,.1)",
+      "--cp-accent-fg":"#000","--cp-success":"#00ff41","--cp-danger":"#ff3300",
+      "--cp-warning":"#ffcc00","--cp-link":"#00aaff","--cp-shadow":"0 18px 48px rgba(0,255,65,.08)" } },
+    win95:    { label: "Windows 95", font: '"MS Sans Serif",Arial,sans-serif', vars: {
+      "--cp-bg":"#008080","--cp-bg-elevated":"#c0c0c0","--cp-surface":"#d4d0c8",
+      "--cp-surface-soft":"#c0c0c0","--cp-border":"#808080","--cp-border-strong":"#000",
+      "--cp-text":"#000","--cp-text-muted":"#444","--cp-text-soft":"#333",
+      "--cp-accent":"#000080","--cp-accent-hover":"#00006a","--cp-accent-soft":"rgba(0,0,128,.12)",
+      "--cp-accent-fg":"#fff","--cp-success":"#008000","--cp-danger":"#c00000",
+      "--cp-warning":"#808000","--cp-link":"#000080" } },
+    hollywood:{ label: "M&E / Hollywood", font: '"Segoe UI",Aptos,sans-serif', vars: {
+      "--cp-bg":"#0f0f14","--cp-bg-elevated":"#13131a","--cp-surface":"#1a1a24",
+      "--cp-surface-soft":"#1f1f2e","--cp-border":"#2a2a3a","--cp-border-strong":"#3a3a50",
+      "--cp-text":"#e8e8f0","--cp-text-muted":"#8888a8","--cp-text-soft":"#a8a8c0",
+      "--cp-accent":"#d4af37","--cp-accent-hover":"#c09a22","--cp-accent-soft":"rgba(212,175,55,.12)",
+      "--cp-accent-fg":"#000","--cp-success":"#4ade80","--cp-danger":"#f87171",
+      "--cp-warning":"#fbbf24","--cp-link":"#60a5fa","--cp-shadow":"0 18px 48px rgba(0,0,0,.5)" } },
+    msblue:   { label: "Microsoft Blue", font: '"Segoe UI",Aptos,sans-serif', vars: {
+      "--cp-bg":"#f0f2f5","--cp-bg-elevated":"#f8f9fa","--cp-surface":"#fff",
+      "--cp-surface-soft":"#f3f4f6","--cp-border":"#d1d5db","--cp-border-strong":"#6b7280",
+      "--cp-text":"#1b1b1b","--cp-text-muted":"#4b5563","--cp-text-soft":"#6b7280",
+      "--cp-accent":"#0078d4","--cp-accent-hover":"#006cbe","--cp-accent-soft":"rgba(0,120,212,.1)",
+      "--cp-accent-fg":"#fff","--cp-success":"#107c10","--cp-danger":"#d13438",
+      "--cp-warning":"#ff8c00","--cp-link":"#0078d4" } },
+    prodark:  { label: "Professional Dark", font: '"Segoe UI",Aptos,sans-serif', vars: {
+      "--cp-bg":"#12131a","--cp-bg-elevated":"#1a1b25","--cp-surface":"#1e2030",
+      "--cp-surface-soft":"#252840","--cp-border":"#2e3149","--cp-border-strong":"#4a4e72",
+      "--cp-text":"#cdd6f4","--cp-text-muted":"#7480a5","--cp-text-soft":"#9098ba",
+      "--cp-accent":"#89b4fa","--cp-accent-hover":"#74a8f8","--cp-accent-soft":"rgba(137,180,250,.14)",
+      "--cp-accent-fg":"#12131a","--cp-success":"#a6e3a1","--cp-danger":"#f38ba8",
+      "--cp-warning":"#f9e2af","--cp-link":"#89dceb","--cp-shadow":"0 18px 48px rgba(0,0,0,.55)",
+      "--cp-highlight":"rgba(137,180,250,.1)" } },
+    tmg:      { label: "TMG Neon", font: '"Segoe UI",Aptos,sans-serif', vars: {
+      "--cp-bg":"#06071a","--cp-bg-elevated":"#0b0d28","--cp-surface":"#0e1030",
+      "--cp-surface-soft":"#131540","--cp-border":"#1e2260","--cp-border-strong":"#2e35a0",
+      "--cp-text":"#e8ecff","--cp-text-muted":"#7080c0","--cp-text-soft":"#a0acdc",
+      "--cp-accent":"#00d4ff","--cp-accent-hover":"#00b8e0","--cp-accent-soft":"rgba(0,212,255,.14)",
+      "--cp-accent-fg":"#06071a","--cp-success":"#00ff9d","--cp-danger":"#ff4d7d",
+      "--cp-warning":"#fbbf24","--cp-link":"#c724f5","--cp-shadow":"0 18px 48px rgba(0,212,255,.15)",
+      "--cp-highlight":"rgba(199,36,245,.14)" } },
+    hcblack:  { label: "High Contrast Dark", font: '"Segoe UI",Aptos,sans-serif', vars: {
+      "--cp-bg":"#000","--cp-bg-elevated":"#000","--cp-surface":"#000",
+      "--cp-surface-soft":"#1a1a1a","--cp-border":"#fff","--cp-border-strong":"#fff",
+      "--cp-text":"#fff","--cp-text-muted":"#d0d0d0","--cp-text-soft":"#c0c0c0",
+      "--cp-accent":"#ffff00","--cp-accent-hover":"#e6e600","--cp-accent-soft":"rgba(255,255,0,.2)",
+      "--cp-accent-fg":"#000","--cp-success":"#00ff00","--cp-danger":"#ff6060",
+      "--cp-warning":"#ffff00","--cp-link":"#00d7ff","--cp-shadow":"0 18px 48px rgba(255,255,255,.08)",
+      "--cp-highlight":"rgba(255,255,0,.15)" } },
+    hcwhite:  { label: "High Contrast Light", font: '"Segoe UI",Aptos,sans-serif', vars: {
+      "--cp-bg":"#fff","--cp-bg-elevated":"#fff","--cp-surface":"#fff",
+      "--cp-surface-soft":"#f0f0f0","--cp-border":"#000","--cp-border-strong":"#000",
+      "--cp-text":"#000","--cp-text-muted":"#333","--cp-text-soft":"#222",
+      "--cp-accent":"#00006d","--cp-accent-hover":"#000050","--cp-accent-soft":"rgba(0,0,109,.12)",
+      "--cp-accent-fg":"#fff","--cp-success":"#006600","--cp-danger":"#8b0000",
+      "--cp-warning":"#8b4500","--cp-link":"#00006d","--cp-shadow":"0 18px 48px rgba(0,0,0,.3)",
+      "--cp-highlight":"rgba(0,0,109,.1)" } },
+  };
+  function applyPalette(key) {
+    const t = THEMES[key] || THEMES.default;
+    const root = document.documentElement;
+    Object.values(THEMES).forEach((th) => Object.keys(th.vars || {}).forEach((v) => root.style.removeProperty(v)));
+    Object.entries(t.vars || {}).forEach(([k, v]) => root.style.setProperty(k, v));
+    document.body.style.fontFamily = t.font || "";
+    const ov = $("scanlines"); if (ov) ov.style.display = key === "terminal" ? "" : "none";
+    const sel = $("themeSel"); if (sel) sel.value = key;
+    try { localStorage.setItem("soulcode.palette", key); } catch (e) {}
+  }
+  $("themeSel").addEventListener("change", (e) => applyPalette(e.target.value));
+  (() => { let saved = "prodark"; try { saved = localStorage.getItem("soulcode.palette") || "prodark"; } catch (e) {} applyPalette(saved); })();
+
+  let currentStep = 0;
+  let streak = 0;
+  function showView(name) {
+    $("view-welcome").style.display = name === "welcome" ? "" : "none";
+    $("view-builder").style.display = name === "builder" ? "" : "none";
+    $("view-review").style.display = name === "review" ? "" : "none";
+    $("agentMeter").style.display = name === "welcome" ? "none" : "flex";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function buildRail(container, activeIdx) {
+    container.innerHTML = "";
+    STEPS.forEach((st, i) => {
+      const item = el("button", "rail-item" + (i === activeIdx ? " active" : ""));
+      const done = stepAnswered(i), tot = stepTotal(i), complete = done === tot;
+      item.appendChild(el("span", "rail-dot" + (complete ? " done" : ""), complete ? "✓" : st.icon));
+      const nm = el("span", "rail-name"); nm.textContent = st.title; item.appendChild(nm);
+      item.appendChild(el("span", "rail-count", done + "/" + tot));
+      item.addEventListener("click", () => { currentStep = i; renderBuilder(); });
+      container.appendChild(item);
+    });
+  }
+  function buildBadges(container) {
+    container.innerHTML = "";
+    STEPS.forEach((st, i) => {
+      const earned = stepAnswered(i) === stepTotal(i);
+      const b = el("span", "rail-badge" + (earned ? " earned" : ""), st.badge);
+      b.title = st.title + (earned ? " (complete!)" : " (" + stepAnswered(i) + "/" + stepTotal(i) + ")");
+      container.appendChild(b);
+    });
+  }
+
+  function aiPrompt(q, cur) {
+    let p = "Help me answer one question for my personal \u201CSoul Code\u201D, a short doc that helps my AI assistant support me well (I'm a Senior CSAM at Microsoft covering media & entertainment accounts). ";
+    p += "Question: \u201C" + q + "\u201D ";
+    p += cur ? ("Here's my draft so far: \u201C" + cur + "\u201D Sharpen it and ask me 1\u20132 quick questions if you need more." )
+             : "Ask me 1\u20132 quick clarifying questions, then propose a tight first-person answer I can refine.";
+    return p;
+  }
+
+  function renderBuilder() {
+    showView("builder");
+    buildRail($("railItems"), currentStep);
+    buildBadges($("railBadges"));
+    const st = STEPS[currentStep];
+    const panel = $("sectionPanel"); panel.innerHTML = "";
+
+    const head = el("div", "section-head");
+    head.appendChild(el("div", "section-icon", st.icon));
+    const ht = el("div");
+    const ctx = st.title === st.secLabel ? "" : " &middot; " + esc(st.secLabel);
+    ht.appendChild(el("div", "eyebrow", "Step " + (currentStep + 1) + " of " + STEPS.length + ctx));
+    ht.appendChild(el("h2", null, esc(st.title)));
+    ht.appendChild(el("p", "lede", esc(st.sub)));
+    head.appendChild(ht);
+    panel.appendChild(head);
+
+    let qNum = 0;
+    st.questions.forEach((qq) => { qNum++; panel.appendChild(renderCard(qq, qNum)); });
+
+    $("backBtn").style.visibility = currentStep === 0 ? "hidden" : "visible";
+    $("nextBtn").textContent = currentStep === STEPS.length - 1 ? "Review & finish ★" : "Next →";
+    $("sectionPos").textContent = "Step " + (currentStep + 1) + " / " + STEPS.length;
+    updateMeter(false);
+  }
+
+  function renderCard(qq, qNum) {
+    const key = qq.key;
+    const card = el("div", "card" + (filled(key) ? " answered" : ""));
+    const top = el("div", "card-top");
+    top.appendChild(el("span", "q-num", "Q" + qNum));
+    const main = el("div", "q-main");
+    main.appendChild(el("div", "q-label", esc(qq.q)));
+    main.appendChild(el("div", "q-hint", "")); // spacer (hints folded into suggestions)
+    top.appendChild(main);
+    // tag
+    const tag = filled(key) ? el("span", "tag done", "✓ Answered")
+      : (qq.kind === "signal" ? el("span", "tag signal", "⚡ From your work") : el("span", "tag reflect", "💭 Your call"));
+    top.appendChild(tag);
+    card.appendChild(top);
+    main.querySelector(".q-hint").remove();
+
+    // suggestion box
+    const isSignal = qq.kind === "signal";
+    const drafts = qq.drafts || (qq.scaffold ? [qq.scaffold] : []);
+    let draftIdx = 0;
+    const sug = el("div", "suggest" + (isSignal ? "" : " reflect"));
+    sug.appendChild(el("div", "stitle", isSignal ? "⚡ Scout's read: does this ring true?" : "💭 A starting point (make it yours)"));
+    const stext = el("div", "stext", esc(drafts[0] || ""));
+    sug.appendChild(stext);
+    if (drafts.length) card.appendChild(sug);
+
+    // chips
+    if (qq.chips && qq.chips.length) {
+      const chips = el("div", "chips");
+      qq.chips.forEach((c) => {
+        const chip = el("button", "chip"); chip.textContent = c;
+        chip.addEventListener("click", () => {
+          const cur = ta.value.trim();
+          ta.value = cur ? (cur.replace(/[.\s]+$/, "") + ", " + c) : c;
+          commit();
+        });
+        chips.appendChild(chip);
+      });
+      card.appendChild(chips);
+    }
+
+    // textarea
+    const ta = el("textarea"); ta.value = state.answers[key] || ""; ta.placeholder = "Your answer\u2026";
+    const commit = () => {
+      const was = filled(key);
+      state.answers[key] = ta.value; save();
+      card.classList.toggle("answered", filled(key));
+      if (!was && filled(key)) { streak++; updateStreak(); awardTag(); }
+      if (was && !filled(key)) { /* cleared */ }
+      buildRail($("railItems"), currentStep); buildBadges($("railBadges")); updateMeter(false);
+    };
+    const awardTag = () => { top.replaceChild(el("span", "tag done", "✓ Answered"), top.lastChild); updateMeter(true); maybeCelebrate(); };
+    ta.addEventListener("input", commit);
+
+    // actions
+    const actions = el("div", "actions");
+    if (isSignal && drafts.length) {
+      const useBtn = el("button", "mini accept", "✓ Use this");
+      useBtn.addEventListener("click", () => { ta.value = drafts[draftIdx]; commit(); toast("Added, tweak it anytime"); ta.focus(); });
+      actions.appendChild(useBtn);
+      if (drafts.length > 1) {
+        const altBtn = el("button", "mini", "↻ Another angle");
+        altBtn.addEventListener("click", () => { draftIdx = (draftIdx + 1) % drafts.length; stext.textContent = drafts[draftIdx]; });
+        actions.appendChild(altBtn);
+      }
+    } else if (drafts.length) {
+      const startBtn = el("button", "mini", "✎ Start from this");
+      startBtn.addEventListener("click", () => { ta.value = drafts[0]; commit(); toast("Starter added, make it yours"); ta.focus(); });
+      actions.appendChild(startBtn);
+    }
+    const aiBtn = el("button", "mini ai", "🤖 Get Copilot's take");
+    aiBtn.title = "Copies a focused prompt for this one question";
+    aiBtn.addEventListener("click", () => { copyText(aiPrompt(qq.q, ta.value.trim()), "Copilot prompt for this question"); });
+    actions.appendChild(aiBtn);
+    card.appendChild(ta);
+    card.appendChild(actions);
+    return card;
+  }
+
+  function updateStreak() {
+    const s = $("streak");
+    if (streak >= 2) { s.style.visibility = "visible"; s.textContent = "🔥 " + streak; }
+    else { s.style.visibility = "hidden"; }
+  }
+
+  function maybeCelebrate() {
+    const st = STEPS[currentStep];
+    if (stepAnswered(currentStep) === stepTotal(currentStep) && !celebrated[currentStep]) {
+      celebrated[currentStep] = true;
+      const allDone = answered() === TOTAL;
+      showModal(allDone ? "⭐" : st.badge,
+        allDone ? "Agent fully attuned!" : "Badge earned: " + st.title,
+        allDone ? "Every question answered, your thinking partner knows you now. Head to Review to export your Soul Code." :
+                  "Nice work. Your agent just leveled up. Keep the momentum going!");
+      confettiBurst();
+    }
+  }
+
+  // Modal
+  function showModal(big, title, text) {
+    $("modalBig").textContent = big; $("modalTitle").textContent = title; $("modalText").textContent = text;
+    $("modalBg").classList.add("show");
+  }
+  $("modalBtn").addEventListener("click", () => $("modalBg").classList.remove("show"));
+  $("modalBg").addEventListener("click", (e) => { if (e.target === $("modalBg")) $("modalBg").classList.remove("show"); });
+
+  // Confetti
+  function confettiBurst() {
+    const cs = getComputedStyle(document.documentElement);
+    const pick = (n, f) => { const v = cs.getPropertyValue(n).trim(); return v || f; };
+    const colors = [pick("--cp-accent", "#b11f4b"), pick("--cp-success", "#16a34a"), pick("--cp-warning", "#f59e0b"), pick("--cp-link", "#0078d4"), pick("--cp-border-strong", "#919191")];
+    for (let i = 0; i < 70; i++) {
+      const c = document.createElement("div"); c.className = "confetti";
+      c.style.background = colors[i % colors.length];
+      c.style.left = (50 + (Math.random() * 30 - 15)) + "vw";
+      c.style.top = "40vh";
+      document.body.appendChild(c);
+      const dx = (Math.random() * 2 - 1) * 60, dy = - (Math.random() * 40 + 20), rot = Math.random() * 720;
+      const dur = 900 + Math.random() * 700;
+      c.animate([
+        { transform: "translate(0,0) rotate(0deg)", opacity: 1 },
+        { transform: "translate(" + dx + "vw," + (dy + 90) + "vh) rotate(" + rot + "deg)", opacity: 0 }
+      ], { duration: dur, easing: "cubic-bezier(.2,.6,.3,1)" });
+      setTimeout(() => c.remove(), dur);
+    }
+  }
+
+  // Output builders
+  function buildDocHtml() {
+    const name = (state.name || "").trim();
+    const dateStr = new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+    let h = '<div style="text-align:center;margin-bottom:18px;"><div style="font-weight:800;letter-spacing:1px;font-size:15px;">SOUL CODE 3.0</div><div style="color:var(--cp-text-muted);font-size:12px;text-transform:uppercase;letter-spacing:.6px;">Strategic Partner Training System</div><div style="margin-top:8px;font-size:13px;color:var(--cp-text-muted);">' + (name ? esc(name) + " &middot; " : "") + dateStr + '</div></div>';
+    SECTIONS.forEach((sec) => {
+      h += "<h3>Section " + sec.id + " &middot; " + esc(sec.title) + "</h3>";
+      const groups = sec.groups || [{ heading: null, questions: sec.questions }];
+      groups.forEach((g) => {
+        if (g.heading) h += '<div class="gh">' + esc(g.heading) + "</div>";
+        g.questions.forEach((qq) => {
+          const ans = (state.answers[qq.key] || "").trim();
+          h += '<div class="qa"><div class="qq">' + esc(qq.q) + '</div><div class="aa' + (ans ? "" : " empty") + '">' + (ans ? esc(ans) : "(not yet answered)") + "</div></div>";
+        });
+      });
+    });
+    return h;
+  }
+  function buildDocText() {
+    const name = (state.name || "").trim();
+    const dateStr = new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+    let t = "# SOUL CODE 3.0\n## Strategic Partner Training System\n" + (name ? name + " \u00b7 " : "") + dateStr + "\n";
+    SECTIONS.forEach((sec) => {
+      t += "\n## Section " + sec.id + " \u00b7 " + sec.title + "\n";
+      const groups = sec.groups || [{ heading: null, questions: sec.questions }];
+      groups.forEach((g) => {
+        if (g.heading) t += "\n### " + g.heading + "\n";
+        g.questions.forEach((qq) => {
+          const ans = (state.answers[qq.key] || "").trim();
+          t += "\n**" + qq.q + "**\n" + (ans ? ans : "_(not yet answered)_") + "\n";
+        });
+      });
+    });
+    return t.trim() + "\n";
+  }
+  function buildPromptText() {
+    const name = (state.name || "").trim();
+    let p = "You are helping me build my \u201CSoul Code\u201D, a personal onboarding document that helps an AI act as my strategic thinking partner. It captures who I am, how I work, what I value, my boundaries, my emotional landscape, and where I'm headed.\n\nCONTEXT\nI am completing a multi-section document with questions about me, my background, leadership, and impact.";
+    if (name) p += " My name is " + name + ".";
+    p += " Below are the questions, each followed by my own answer where I've given one. Where my answer is blank, draft a thoughtful, realistic answer in my voice from the surrounding context, and clearly mark anything you inferred so I can confirm it.\n\nEXECUTION INSTRUCTIONS (CRITICAL)\n1. First, generate complete answers for ALL questions.\n2. Only after ALL answers are complete, assemble the final Soul Code in a single step.\n3. Do NOT generate partial outputs or drafts along the way.\n4. Keep my existing answers intact; only fill gaps and lightly refine for clarity.\n5. Preserve my voice, values, and boundaries throughout.\n\nQUESTIONS & MY ANSWERS\n";
+    SECTIONS.forEach((sec) => {
+      p += "\n=== SECTION " + sec.id + ": " + sec.title.toUpperCase() + " ===\n";
+      const groups = sec.groups || [{ heading: null, questions: sec.questions }];
+      groups.forEach((g) => {
+        if (g.heading) p += "\n-- " + g.heading + " --\n";
+        g.questions.forEach((qq) => {
+          const ans = (state.answers[qq.key] || "").trim();
+          p += "\nQ: " + qq.q + "\nA: " + (ans ? ans : "[blank, please draft in my voice]") + "\n";
+        });
+      });
+    });
+    p += "\nWhen everything is complete, present the finished Soul Code organized by the same sections, ready for me to save.\n";
+    return p;
+  }
+
+  // Maps each question to a memory category + a first-person lead-in, so finishing the
+  // quest produces durable facts Scout can store via m_remember (not just a document).
+  const MEM_MAP = {
+    s0_q0:  ["context",    "My role & primary responsibilities:"],
+    s0_q1:  ["context",    "What a successful quarter looks like in my role:"],
+    s0_q2:  ["context",    "The people I work most closely with:"],
+    s0_q3:  ["context",    "The tools, systems, and platforms I use most:"],
+    s0_q4:  ["context",    "The solution areas / products I focus on:"],
+    s0_q5:  ["context",    "The industries / customer segments I serve:"],
+    s0_q6:  ["context",    "How I think about Microsoft's mission in my work:"],
+    s0_q7:  ["context",    "Aspects of Microsoft culture that resonate with me:"],
+    s0_q8:  ["context",    "The hardest part of my job right now:"],
+    s0_q9:  ["preference", "Work I'd most like AI to take off my plate:"],
+    s0_q10: ["goal",       "My top professional goals this fiscal year:"],
+    s0_q11: ["goal",       "The skill I most want to grow:"],
+    s0_q12: ["goal",       "Where I want to be in my career in 2-3 years:"],
+    s0_q13: ["preference", "The one thing I'd most want fixed about my workday:"],
+    s1_q0:  ["context",    "What drives me / my sense of purpose:"],
+    s1_q1:  ["preference", "My top non-negotiables:"],
+    s1_q2:  ["context",    "Who I'm ultimately building for:"],
+    s1_q3:  ["preference", "When things get rushed or messy, what should win:"],
+    s1_q4:  ["boundary",   "Trade-offs I am / am not willing to make:"],
+    s2_q0:  ["preference", "How I want my agent to communicate with me:"],
+    s2_q1:  ["preference", "When I'm overwhelmed, my agent should:"],
+    s2_q2:  ["preference", "How my agent should challenge me when something feels off:"],
+    s2_q3:  ["preference", "How I like to receive feedback / course corrections:"],
+    s3_q0:  ["boundary",   "ALWAYS ask me before doing:"],
+    s3_q1:  ["boundary",   "NEVER do, automate, or surface:"],
+    s3_q2:  ["boundary",   "My vault (never summarize, share, or surface without my explicit yes):"],
+    s4_q0:  ["context",    "When I'm stressed, it usually looks like:"],
+    s4_q1:  ["context",    "What tends to trigger overwhelm for me:"],
+    s4_q2:  ["context",    "What dims my spark / makes me feel small:"],
+    s4_q3:  ["preference", "What helps me reset quickly:"],
+    s4_q4:  ["context",    "What drains my energy fastest vs. what restores it:"],
+    s5_q0:  ["context",    "The season of life I'm in right now:"],
+    s5_q1:  ["boundary",   "Real-life constraints my agent should always consider:"],
+    s5_q2:  ["goal",       "Where I'm headed (life in 3-5 years):"],
+    s5_q3:  ["preference", "My idea of a perfect work day:"],
+    s5_q4:  ["context",    "Other context my agent should understand to support me well:"],
+  };
+  const MEM_GROUPS = [
+    ["preference", "Preferences: how I like to work"],
+    ["boundary",   "Boundaries: always / never / vault"],
+    ["goal",       "Goals & growth"],
+    ["context",    "Context about my role & life"],
+  ];
+  function memEntries() {
+    const out = {};
+    MEM_GROUPS.forEach(([c]) => (out[c] = []));
+    FLAT.forEach((f) => {
+      const ans = (state.answers[f.key] || "").trim();
+      if (!ans) return;
+      const m = MEM_MAP[f.key]; if (!m) return;
+      out[m[0]].push(m[1] + " " + ans.replace(/\s+/g, " "));
+    });
+    return out;
+  }
+  function buildMemoryText() {
+    const name = (state.name || "").trim();
+    const who = name ? name : "me";
+    let t = "Please remember the following durable facts about " + (name ? name + " (me)" : "me") + ", from my Soul Code. ";
+    t += "Save each as a persistent memory in the matching category (preference / boundary / context / goal) so you can support me consistently across every future session:\n";
+    const entries = memEntries();
+    MEM_GROUPS.forEach(([cat, label]) => {
+      const list = entries[cat];
+      if (!list.length) return;
+      t += "\n[" + label + "]\n";
+      list.forEach((line) => { t += "- " + line + "\n"; });
+    });
+    t += "\nTreat the boundary items as hard rules, always honor the ALWAYS-ask and NEVER lists, and never surface anything in my vault without my explicit yes.\n";
+    return t;
+  }
+
+  function renderReview() {
+    showView("review");
+    buildRail($("railItems2"), -1); buildBadges($("railBadges2"));
+    const a = answered();
+    $("statAnswered").textContent = a; $("statTotal").textContent = TOTAL;
+    $("statPct").textContent = Math.round((a / TOTAL) * 100) + "%"; $("statWords").textContent = wordCount();
+    $("docOut").innerHTML = buildDocHtml(); $("promptOut").textContent = buildPromptText();
+    $("memOut").textContent = buildMemoryText();
+    const memCount = Object.values(memEntries()).reduce((n, l) => n + l.length, 0);
+    $("memNote").textContent = memCount + " memor" + (memCount === 1 ? "y" : "ies") + " ready from your answered questions"
+      + (a < TOTAL ? ", finish more to load Scout up further." : ".");
+    updateMeter(false);
+  }
+
+  // Toast + copy
+  let toastTimer;
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 1900); }
+  function copyText(txt, label) {
+    const done = () => toast(label + " copied ✓");
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, () => fallbackCopy(txt, done));
+    else fallbackCopy(txt, done);
+  }
+  function fallbackCopy(txt, cb) {
+    const ta = document.createElement("textarea"); ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); cb(); } catch (e) { toast("Press Ctrl+C to copy"); }
+    document.body.removeChild(ta);
+  }
+
+  // Wiring
+  $("userName").value = state.name || "";
+  $("userName").addEventListener("input", (e) => { state.name = e.target.value; save(); });
+  if (answered() > 0) $("resumeBtn").style.display = "";
+  $("startBtn").addEventListener("click", () => { currentStep = 0; renderBuilder(); });
+  $("resumeBtn").addEventListener("click", () => {
+    let target = -1;
+    for (let i = 0; i < STEPS.length; i++) { if (stepAnswered(i) < stepTotal(i)) { target = i; break; } }
+    if (target === -1) renderReview(); else { currentStep = target; renderBuilder(); }
+  });
+  $("backBtn").addEventListener("click", () => { if (currentStep > 0) { currentStep--; renderBuilder(); } });
+  $("nextBtn").addEventListener("click", () => { if (currentStep < STEPS.length - 1) { currentStep++; renderBuilder(); } else renderReview(); });
+  $("railFinish").addEventListener("click", renderReview);
+  $("reviewBackBtn").addEventListener("click", () => { currentStep = STEPS.length - 1; renderBuilder(); });
+  document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active")); tab.classList.add("active");
+    const w = tab.getAttribute("data-tab");
+    $("tab-doc").style.display = w === "doc" ? "" : "none";
+    $("tab-prompt").style.display = w === "prompt" ? "" : "none";
+    $("tab-mem").style.display = w === "mem" ? "" : "none";
+  }));
+  $("copyDocBtn").addEventListener("click", () => copyText(buildDocText(), "Soul Code"));
+  $("copyPromptBtn").addEventListener("click", () => copyText(buildPromptText(), "Copilot prompt"));
+  $("copyMemBtn").addEventListener("click", () => copyText(buildMemoryText(), "Memory pack"));
+  $("downloadBtn").addEventListener("click", () => {
+    const blob = new Blob([buildDocText()], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob); const a = document.createElement("a");
+    const nm = (state.name || "My").trim().replace(/[^\w\- ]/g, "").replace(/\s+/g, "_") || "My";
+    a.href = url; a.download = nm + "_Soul_Code.md"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000); toast("Downloaded ✓");
+  });
+  $("printBtn").addEventListener("click", () => window.print());
+  $("resetBtn").addEventListener("click", () => {
+    if (confirm("Erase all your answers and start over? This cannot be undone.")) {
+      state = { name: "", answers: {} }; celebrated = {}; streak = 0; save();
+      $("userName").value = ""; $("resumeBtn").style.display = "none"; updateStreak();
+      currentStep = 0; updateMeter(false); showView("welcome");
+    }
+  });
+
+  // mark already-complete steps as celebrated so we don't replay on load
+  STEPS.forEach((st, i) => { if (stepTotal(i) > 0 && stepAnswered(i) === stepTotal(i)) celebrated[i] = true; });
+  updateMeter(false); updateStreak();
+})();
+</script>
+</body>
+</html>
